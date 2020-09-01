@@ -4,6 +4,12 @@ import time
 import datetime
 import shutil
 
+sleep = 12
+
+fp_x = 0
+fp_y = 0
+fp_z = 0
+
 json_filename = "./records/record_list.json"
 
 record_list = []
@@ -25,35 +31,26 @@ def monitor(server):
     OP = server.get_plugin_instance('OnlinePlayerAPI')
     while True:
         players = OP.get_player_list()
-        for i in range(len(players)):
-            try:
+        try:
+            for i in range(len(players)):
                 pos = PI.getPlayerInfo(server, players[i], path='Pos')
-            except:
-                continue
-            try:
                 x = int(pos[0])
-            except:
-                x = "Error"
-            try:
                 y = int(pos[1])
-            except:
-                y = "Error"
-            try:
                 z = int(pos[2])
-            except:
-                z = "Error"
-            try:
                 dim = PI.getPlayerInfo(server, players[i], path='Dimension')
-            except:
-                continue
-            if dim == -1:
-                dim = "Nether"
-            elif dim == 0:
-                dim = "World"
-            elif dim == 1:
-                dim = "End"
-            theTime = datetime.datetime.now().strftime(ISOTIMEFORMAT)
-            info = str(theTime) + " " + str(players[i]) + " " + str(dim) + " x:" + str(x)+ " y:" + str(y)+ " z:" + str(z)
-            record_list.append(info)
-            saveJson()
-        time.sleep(12)
+                pre = " 危 "
+                if fp_x-50<=x<=fp_x+50 and fp_z-50<z<fp_z+50 and fp_y-10<=y<=fp_y+10 and dim==-1:
+                    server.say("§c"+ "Warning!" + pre + players[i] + pre + "在伪和平传送门附近游荡！！！")
+                if dim == -1:
+                    dim = "Nether"
+                elif dim == 0:
+                    dim = "World"
+                elif dim == 1:
+                    dim = "End"
+                theTime = datetime.datetime.now().strftime(ISOTIMEFORMAT)
+                info = str(theTime) + " " + str(players[i]) + " " + str(dim) + " x:" + str(x)+ " y:" + str(y)+ " z:" + str(z)
+                record_list.append(info)
+                saveJson()
+        except:
+            continue
+        time.sleep(sleep)

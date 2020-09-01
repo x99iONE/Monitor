@@ -1,2 +1,11 @@
 # Monitor
-Record player coordinates in real time.
+监控并记录玩家坐标
+在玩家靠近伪和平时向全服通知
+
+使用前先进行设置
+sleep = 12 每12秒记录一次玩家坐标
+
+fp_x = 0
+fp_y = 0
+fp_z = 0
+伪和平的地狱坐标为 0 0 0
