@@ -3,12 +3,14 @@ import json
 import time
 import datetime
 import shutil
+import re
 
-sleep = 12
+sleep = 10
 
 json_filename = "./records/record_list.json"
 site_info = "./config/site.json"
 
+bot_list = []
 record_list = []
 site_list = {}
 
@@ -27,6 +29,7 @@ count = 0
 status = 0
 
 def on_info(server, info):
+    global bot_list
     if info.is_player == 1:
         if info.content.startswith('!!mr'):
             args = info.content.split(' ')
@@ -46,6 +49,10 @@ def on_info(server, info):
                 server.say("§a监控坐标已重载")
             else:
                 server.tell(info.player, "§7[§aMonitor§f/§cWARN§7] §c参数错误，请输入!!mr 查看帮助信息")
+    elif info.source == 0 and not info.is_player:
+        botinfo = joined_info(info.content)
+        if botinfo[0] and botinfo[1] == 'bot' and botinfo[2] not in bot_list:
+            bot_list.append(botinfo[2])
 
 def on_load(server, old):
     server.add_help_message('!!mr', '监控插件')
@@ -87,6 +94,17 @@ def is_instance(str):
     except ValueError:
         return False
 
+# 判断bot
+def joined_info(msg):
+    joined_player = re.match(
+        r'(\w+)\[([0-9\.:]+|local)\] logged in with entity id', msg)
+    if joined_player:
+        if joined_player.group(2) == 'local':
+            return [True, 'bot', joined_player.group(1)]
+        else:
+            return [True, 'player', joined_player.group(1)]
+    return [False]
+
 # 添加监控点
 def add_site(server, args, info):
     if len(args) == 7:
@@ -116,16 +134,22 @@ def show_site(server):
 def on_player_joined(server, player):
     global count
     global status
-    count = count + 1
-    if count == 1:
-        status = 1
-        monitor(server)
+    if player in bot_list:
+        count = count
+    else:
+        count = count + 1
+        if count == 1:
+            status = 1
+            monitor(server)
 def on_player_left(server, player):
     global count
     global status
-    count = count - 1
-    if count == 0:
-        status = 0
+    if player in bot_list:
+        bot_list.remove(player)
+    else:
+        count = count - 1
+        if count == 0:
+            status = 0
 
 # 监控
 def monitor(server):
@@ -135,7 +159,8 @@ def monitor(server):
     while True:
         if status == 1:
             time.sleep(3)
-            players = OP.get_player_list()
+            Online = OP.get_player_list()
+            players = list(set(Online) - set(bot_list))
             try:
                 for i in range(len(players)):
                     pos = PI.getPlayerInfo(server, players[i], path='Pos')
@@ -162,7 +187,7 @@ def monitor(server):
                     saveJson()
             except:
                 continue
-            time.sleep(sleep-3)
+            time.sleep(sleep - 3)
         elif status == 0:
             break
 
