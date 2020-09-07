@@ -7,7 +7,7 @@
 
 插件依赖[PlayerInfoAPI](https://github.com/TISUnion/PlayerInfoAPI)和[OnlinePlayerAPI](https://github.com/zhang-anzhi/MCDReforgedPlugins/tree/master/OnlinePlayerAPI)
 
-使用前可先对插件进行设置：sleep = 10 ---- 每12秒记录一次玩家坐标
+使用前可先对插件进行设置：sleep = 10 ---- 每10秒记录一次玩家坐标
 
 !!mr help  显示帮助消息
 
