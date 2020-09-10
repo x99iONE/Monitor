@@ -4,11 +4,13 @@ import time
 import datetime
 import shutil
 import re
+import os
 
 sleep = 10
 
 json_filename = "./records/record_list.json"
 site_info = "./config/site.json"
+records = "./records
 
 bot_list = []
 record_list = []
@@ -56,6 +58,8 @@ def on_info(server, info):
 
 def on_load(server, old):
     server.add_help_message('!!mr', '监控插件')
+    if not os.path.exists(records):
+        os.makedirs(records)
     apart()
     load_site(site_info)
 
