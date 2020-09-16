@@ -10,7 +10,7 @@ sleep = 10
 
 json_filename = "./records/record_list.json"
 site_info = "./config/site.json"
-records = "./records
+records = "./records"
 
 bot_list = []
 record_list = []
