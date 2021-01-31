@@ -5,8 +5,22 @@ import datetime
 import shutil
 import re
 import os
+from mcdreforged.api.decorator import new_thread
 
-sleep = 10
+PLUGIN_METADATA = {
+    'id': 'monitor',
+    'version': '2.1.0',
+    'name': 'Monitor',
+    'description': 'A plugin to record player coordinates, pseudo-peace notification.',
+    'author': 'W_Kazdel',
+    'link': 'https://github.com/W-Kazdel/Monitor',
+    'dependencies': {
+        'playerinfoapi': '*',
+        'onlineplayerapi': '*'
+    }
+}
+
+sleep = 12
 
 json_filename = "./records/record_list.json"
 site_info = "./config/site.json"
@@ -57,7 +71,7 @@ def on_info(server, info):
             bot_list.append(botinfo[2])
 
 def on_load(server, old):
-    server.add_help_message('!!mr', '监控插件')
+    server.register_help_message('!!mr', '监控插件')
     if not os.path.exists(records):
         os.makedirs(records)
     apart()
@@ -135,7 +149,7 @@ def show_site(server):
         server.say(f"§a{key} §b次元: {dim}  §a{x}, {y}, {z}")
 
 # 控制坐标监控开关
-def on_player_joined(server, player):
+def on_player_joined(server, player, info):
     global count
     global status
     if player in bot_list:
@@ -156,10 +170,11 @@ def on_player_left(server, player):
             status = 0
 
 # 监控
+@new_thread('Monitor')
 def monitor(server):
     global record_list
-    PI = server.get_plugin_instance('PlayerInfoAPI')
-    OP = server.get_plugin_instance('OnlinePlayerAPI')
+    PI = server.get_plugin_instance('playerinfoapi')
+    OP = server.get_plugin_instance('onlineplayerapi')
     while True:
         if status == 1:
             time.sleep(3)
