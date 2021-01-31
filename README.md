@@ -1,4 +1,4 @@
-# Monitor 3.0.0
+# Monitor 2.1.0
 #### 需要**[MCDR-v1.x](https://github.com/Fallen-Breath/MCDReforged)**的支持！！！
 
 监控并记录玩家坐标，保存在records文件夹内
