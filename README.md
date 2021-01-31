@@ -24,5 +24,7 @@
 ## New.
 
 2.0.1 不再对Bot进行监控
+
 2.0.2 修正bug
+
 2.1.0 升级至[MCDR-v1.x](https://github.com/Fallen-Breath/MCDReforged)
