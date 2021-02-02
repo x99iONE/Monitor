@@ -5,43 +5,41 @@ import datetime
 import shutil
 import re
 import os
-from mcdreforged.api.decorator import new_thread
+from mcdreforged.api.all import *
 
 PLUGIN_METADATA = {
     'id': 'monitor',
-    'version': '2.1.0',
+    'version': '2.2.1',
     'name': 'Monitor',
     'description': 'A plugin to record player coordinates, pseudo-peace notification.',
     'author': 'W_Kazdel',
     'link': 'https://github.com/W-Kazdel/Monitor',
     'dependencies': {
-        'playerinfoapi': '*',
-        'onlineplayerapi': '*'
+        'minecraft_data_api': '>=1.1.0'
     }
 }
 
-sleep = 12
+sleep = 15
 
 json_filename = "./records/record_list.json"
 site_info = "./config/site.json"
 records = "./records"
 
+online_player = []
 bot_list = []
 record_list = []
 site_list = {}
 
 help_msg = '''----------- §aMCDR 监控插件帮助信息 §f-----------
-§b!!mr help §f- §c显示帮助消息
 §b!!mr add [坐标名] [x] [y] [z] [次元] §f- §c次元：world nether end
 §b!!mr list §f- §c显示所有已有监控
-§b!!mr reload §f- §c重载监控坐标，联系管理员删除后操作该指令
+§b!!mr reload §f- §c重载监控坐标，联系管理员更改后操作该指令
 §e为防止随意删除更改监控点，删除监控请联系管理，玩家仅有添加权限
 -----------------Monitor-----------------'''
 
 ISOTIMEFORMAT = '%Y-%m-%d %H.%M.%S'
 pre = " 危 "
 
-count = 0
 status = 0
 
 def on_info(server, info):
@@ -50,9 +48,6 @@ def on_info(server, info):
         if info.content.startswith('!!mr'):
             args = info.content.split(' ')
             if len(args) == 1:
-                for line in help_msg.splitlines():
-                    server.tell(info.player, line)
-            elif args[1] == 'help':
                 for line in help_msg.splitlines():
                     server.tell(info.player, line)
             elif args[1] == 'add':
@@ -71,11 +66,16 @@ def on_info(server, info):
             bot_list.append(botinfo[2])
 
 def on_load(server, old):
+    global online_player
     server.register_help_message('!!mr', '监控插件')
     if not os.path.exists(records):
         os.makedirs(records)
     apart()
     load_site(site_info)
+    if old is not None and old.online_player is not None:
+        online_player = old.online_player
+    else:
+        online_player = []
 
 # 分割文件
 def apart():
@@ -87,20 +87,22 @@ def apart():
 
 # 保存坐标记录
 def saveJson():
-    with open(json_filename, 'w+') as f:
+    with open(json_filename, 'w+', encoding='utf-8') as f:
         json.dump(record_list, f, ensure_ascii=False, indent=4)
 
 # 保存监控点
+@new_thread('mr')
 def saveSite():
     with open(site_info, 'w') as f:
         json.dump(site_list, f, ensure_ascii=False, indent=4)
 
 # 重载监控点
+@new_thread('mr')
 def load_site(site_info):
     global site_list
     try:
         with open(site_info) as f:
-            site_list = json.load(f, encoding='utf8')
+            site_list = json.load(f, encoding='utf-8')
     except:
         saveSite()
 
@@ -124,6 +126,7 @@ def joined_info(msg):
     return [False]
 
 # 添加监控点
+@new_thread('mr')
 def add_site(server, args, info):
     if len(args) == 7:
         if args[2] in site_list:
@@ -139,6 +142,7 @@ def add_site(server, args, info):
         server.tell(info.player, "§7[§aMonitor§f/§cWARN§7] §c缺少参数，请输入!!mr 查看帮助信息")
 
 # 打印监控点
+@new_thread('mr')
 def show_site(server):
     server.say("§b[监控坐标点列表]")
     for key, values in site_list.items():
@@ -150,48 +154,41 @@ def show_site(server):
 
 # 控制坐标监控开关
 def on_player_joined(server, player, info):
-    global count
     global status
-    if player in bot_list:
-        count = count
-    else:
-        count = count + 1
-        if count == 1:
-            status = 1
-            monitor(server)
+    if player not in online_player and player not in bot_list:
+        online_player.append(player)
+    if len(online_player) == 1:
+        status = 1
+        monitor(server)
 def on_player_left(server, player):
-    global count
     global status
+    if player in online_player:
+        online_player.remove(player)
+        if len(online_player) == 0:
+            status = 0
     if player in bot_list:
         bot_list.remove(player)
-    else:
-        count = count - 1
-        if count == 0:
-            status = 0
 
 # 监控
 @new_thread('Monitor')
 def monitor(server):
     global record_list
-    PI = server.get_plugin_instance('playerinfoapi')
-    OP = server.get_plugin_instance('onlineplayerapi')
+    MinecraftDataAPI = server.get_plugin_instance('minecraft_data_api')
     while True:
         if status == 1:
             time.sleep(3)
-            Online = OP.get_player_list()
-            players = list(set(Online) - set(bot_list))
             try:
-                for i in range(len(players)):
-                    pos = PI.getPlayerInfo(server, players[i], path='Pos')
+                for i in range(len(online_player)):
+                    pos = MinecraftDataAPI.get_player_coordinate(online_player[i])
                     x = int(pos[0])
                     y = int(pos[1])
                     z = int(pos[2])
-                    dim = PI.getPlayerInfo(server, players[i], path='Dimension')
-                    if dim==0 or dim=="minecraft:overworld":
+                    dim = MinecraftDataAPI.get_player_dimension(online_player[i])
+                    if dim==0:
                         dim = "world"
-                    elif dim==-1 or dim=="minecraft:the_nether":
+                    elif dim==-1:
                         dim = "nether"
-                    elif dim==1 or dim=="minecraft:the_end":
+                    elif dim==1:
                         dim = "end"
                     for key, values in site_list.items():
                         fp_x = int(values[0])
@@ -199,9 +196,10 @@ def monitor(server):
                         fp_z = int(values[2])
                         fp_dim = values[3]
                         if fp_x-50<=x<=fp_x+50 and fp_z-50<z<fp_z+50 and fp_y-10<=y<=fp_y+10 and dim==fp_dim:
-                            server.say("§7[§aMonitor§f/§cWARNING§7]§c" + pre + players[i] + pre + "在 " + key + " 附近游荡！！！")
+                            server.say("§7[§aMonitor§f/§cWARNING§7]§c" + pre + online_player[i] + pre + "在 " + key + " 附近游荡！！！")
+                            record_list.append("[Monitor/WARNING]" + pre + online_player[i] + pre + "在 " + key + " 附近游荡！！！")
                     theTime = datetime.datetime.now().strftime(ISOTIMEFORMAT)
-                    info = str(theTime) + " " + str(players[i]) + " " + str(dim) + " x:" + str(x)+ " y:" + str(y)+ " z:" + str(z)
+                    info = str(theTime) + " " + str(online_player[i]) + " " + str(dim) + " x:" + str(x)+ " y:" + str(y)+ " z:" + str(z)
                     record_list.append(info)
                     saveJson()
             except:
@@ -213,3 +211,7 @@ def monitor(server):
 def on_unload(server):
     saveJson()
     saveSite()
+
+def on_server_stop(server, return_code):
+    global online_player
+    online_player = []
