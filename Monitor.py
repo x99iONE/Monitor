@@ -157,9 +157,10 @@ def on_player_joined(server, player, info):
     global status
     if player not in online_player and player not in bot_list:
         online_player.append(player)
-    if len(online_player) == 1:
+    if len(online_player) == 1 and player in online_player:
         status = 1
         monitor(server)
+
 def on_player_left(server, player):
     global status
     if player in online_player:
